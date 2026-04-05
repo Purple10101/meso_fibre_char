@@ -11,7 +11,7 @@ modeling sub system emulator
 import asyncio
 from multiprocessing import Queue
 
-from msg.src.common.common import Node, cprint, SharedImage
+from src.common.common import Node, cprint, SharedImage
 
 
 class ModelingSS5:

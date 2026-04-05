@@ -14,8 +14,8 @@ import pathlib
 from multiprocessing import Queue
 import cv2
 
-from msg.src.common.common import Node, cprint, SharedImage
-from msg.src.common.paths import IMAGE_PATH
+from src.common.common import Node, cprint, SharedImage
+from src.common.paths import IMAGE_PATH
 
 
 

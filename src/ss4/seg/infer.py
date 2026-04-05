@@ -30,7 +30,7 @@ from scipy.ndimage import binary_erosion
 import torchvision.transforms.functional as TF
 from pycocotools import mask as coco_mask_utils
 
-from msg.src.ss4.seg.model import build_model
+from src.ss4.seg.model import build_model
 
 
 # ════════════════════════════════════════════════════════════

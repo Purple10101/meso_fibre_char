@@ -14,9 +14,9 @@ import torch
 import cv2
 import os
 
-from msg.src.common.common import Node, cprint, SharedImage
-from msg.src.ss4.seg.model import build_model
-from msg.src.ss4.seg.infer import run_inference
+from src.common.common import Node, cprint, SharedImage
+from src.ss4.seg.model import build_model
+from src.ss4.seg.infer import run_inference
 
 
 class ImageProcessingSS4:
