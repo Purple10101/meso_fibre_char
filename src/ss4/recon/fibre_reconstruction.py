@@ -24,6 +24,10 @@ from skimage.segmentation import find_boundaries
 from skimage.draw import line
 import numpy as np
 
+from scipy.ndimage import distance_transform_edt
+from skimage.draw import line
+from skimage.morphology import binary_dilation, disk
+
 
 def _find_fragments(mask):
     labeled = label(mask)
@@ -55,13 +59,27 @@ def _fragment_proximity(frag_a, frag_b):
     return dists.min(), nearest_a, nearest_b
 
 
+def _fragment_radius(frag):
+    dist_transform = distance_transform_edt(frag)
+    return dist_transform.max()
+
 def _fragment_merge(mask, frag_a, frag_b):
     _, nearest_a, nearest_b = _fragment_proximity(frag_a, frag_b)
 
-    # draw a line between the two nearest boundary pixels
+    radius_a = _fragment_radius(frag_a)
+    radius_b = _fragment_radius(frag_b)
+    bridge_radius = int(round((radius_a + radius_b) / 2))
+
+    # draw the line
     rr, cc = line(nearest_a[0], nearest_a[1], nearest_b[0], nearest_b[1])
+    bridge = np.zeros_like(mask, dtype=bool)
+    bridge[rr, cc] = True
+
+    # dilate the line by the average radius
+    bridge = binary_dilation(bridge, footprint=disk(bridge_radius))
+
     merged = mask.copy()
-    merged[rr, cc] = True
+    merged[bridge] = True
 
     return merged
 
