@@ -5,6 +5,8 @@ Joshua Poole
 
 ss4.py
 image processing sub system emulator
+TODO: All client facing and database stuff
+TODO: Time everything!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 """
 
@@ -17,6 +19,14 @@ import os
 from src.common.common import Node, cprint, SharedImage
 from src.ss4.seg.model import build_model
 from src.ss4.seg.infer import run_inference
+from src.ss4.recon.fibre_reconstruction import image_fibres_reconstruction
+from src.ss4.meas.fibre_measure import dim_measure
+
+
+def _get_pixel_side_len(x_mm, y_mm, x_px, y_px):
+    x_pixel_size = x_mm / x_px
+    y_pixel_size = y_mm / y_px
+    return (x_pixel_size + y_pixel_size) / 2
 
 
 class ImageProcessingSS4:
@@ -36,35 +46,24 @@ class ImageProcessingSS4:
 
     def run(self, image, metadata):
         """
-        fabricated results for now
+        run image analysis pipeline according to metadata provided
+        TODO: add support for invalid image
+        TODO: Add certainty per fibre?
         """
+        ret_val = {"image_id": metadata["image_id"],
+                   "char": []}
+        x_px, y_px, _ = image.shape
         fibres = run_inference(self.model, image, self.device,
                                debug=True, debug_stem=f"frame_{metadata['image_id']}")
-        ret_val = {
-            "image_id": 99999,
-            "char": [
-                {"mesh_id": 0,
-                 "dimensions": {
-                     "length": 1.3,
-                     "width": 0.06,
-                 }},
-                {"mesh_id": 1,
-                 "dimensions": {
-                     "length": 1.8,
-                     "width": 0.03,
-                 }},
-                {"mesh_id": 2,
-                 "dimensions": {
-                     "length": 0.9,
-                     "width": 0.03,
-                 }},
-                {"mesh_id": 3,
-                 "dimensions": {
-                     "length": 2.0,
-                     "width": 0.08,
-                 }},
-            ]
-        }
+        image_fibres_reconstruction(fibres)
+        px_len = _get_pixel_side_len(metadata["x_mm"], metadata["y_mm"], x_px, y_px)
+
+        ret_val["char"] = [
+            {"mesh_id": i,
+             "dimensions": {"length": length_mm, "width": width_mm}}
+            for i, fibre in enumerate(fibres)
+            for length_mm, width_mm in [dim_measure(fibre, px_len)]
+        ]
         return ret_val
 
 
