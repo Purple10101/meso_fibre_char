@@ -126,6 +126,9 @@ class Fibre:
     length      : float = field(init=False)  # long-axis length via PCA (px)
     orientation : float = field(init=False)  # long-axis angle in degrees
 
+    # Post Processed — computer by reonstruction phase
+    reconstructed_region: np.ndarray = field(default=None)
+
     def __post_init__(self):
         ys, xs   = np.where(self.mask)
         self.area = int(self.mask.sum())

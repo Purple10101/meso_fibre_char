@@ -29,13 +29,12 @@ from skimage.draw import line
 from skimage.morphology import binary_dilation, disk
 
 
-def _find_fragments(mask):
+def _find_fragments(mask, min_area_fraction=0.05):
+    # Rejects fragments < 5% of the largest one
     labeled = label(mask)
-    n = labeled.max()
-    fragments = []
-    for i in range(1, n + 1):
-        fragments.append(labeled == i)
-    return fragments
+    all_frags = [labeled == i for i in range(1, labeled.max() + 1)]
+    largest = max(f.sum() for f in all_frags)
+    return [f for f in all_frags if f.sum() >= largest * min_area_fraction]
 
 
 def _fragment_proximity(frag_a, frag_b):
@@ -84,22 +83,27 @@ def _fragment_merge(mask, frag_a, frag_b):
     return merged
 
 
-def reconstruct(mask):
+def _reconstruct(mask):
     fragments = _find_fragments(mask)
 
-    if len(fragments) == 1:
-        return mask   # nothing to do
+    if len(fragments) == 0:
+        return mask, None
 
-    current_mask = mask.copy()
+    # rebuild mask from only accepted fragments, dropping small artifacts
+    current_mask = np.zeros_like(mask, dtype=bool)
+    for frag in fragments:
+        current_mask |= frag
+
+    if len(fragments) == 1:
+        return current_mask, None   # nothing to bridge but artifacts removed
 
     while True:
         fragments = _find_fragments(current_mask)
         if len(fragments) == 1:
             break
 
-        # find the closest pair of fragments
-        best_dist  = np.inf
-        best_pair  = (0, 1)
+        best_dist = np.inf
+        best_pair = (0, 1)
         for i in range(len(fragments)):
             for j in range(i + 1, len(fragments)):
                 dist, _, _ = _fragment_proximity(fragments[i], fragments[j])
@@ -113,13 +117,13 @@ def reconstruct(mask):
             fragments[best_pair[1]],
         )
 
-    return current_mask
+    reconstructed_region = current_mask & ~mask
 
+    return current_mask, reconstructed_region
 
-
-def needs_reconstruction(mask):
-    labeled = label(mask)
-    return labeled.max() > 1   # more than one connected component = fragmented
+def image_fibres_reconstruction(fibres):
+    for fibre in fibres:
+        fibre.mask, fibre.reconstructed_region = _reconstruct(fibre.mask)
 
 def show_reconstruction(fibre, pil_image, out_path="reconstruction.png"):
     from skimage.morphology import convex_hull_image
@@ -128,7 +132,7 @@ def show_reconstruction(fibre, pil_image, out_path="reconstruction.png"):
     from PIL import Image
 
     original_mask = fibre.mask.copy()
-    reconstructed_mask = reconstruct(fibre.mask)
+    reconstructed_mask, fibre.reconstructed_region = _reconstruct(fibre.mask)
 
     H, W = original_mask.shape
     black = Image.fromarray(np.zeros((H, W, 3), dtype=np.uint8))
@@ -170,7 +174,7 @@ def main():
 
     # load in a fibre image
     images = [f for f in os.listdir(IMAGE_PATH) if f.lower().endswith((".png", ".jpg", ".bmp"))]
-    image_path_total = IMAGE_PATH / images[0]
+    image_path_total = IMAGE_PATH / images[4]
     image = cv2.imread(image_path_total)
     fibres = run_inference(model, image, device, debug=True, debug_out_dir="inf_dbg")
 
