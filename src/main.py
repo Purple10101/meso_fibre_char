@@ -17,6 +17,7 @@ from src.common.common import cprint, COLORS, RESET, BOLD
 from src.ss3.ss3 import run_ss3
 from src.ss4.ss4 import run_ss4
 from src.ss5.ss5 import run_ss5
+from src.common.db import init_db
 
 
 def main():
@@ -31,6 +32,9 @@ def main():
     ss3_q = Queue()
     ss4_q = Queue()
     ss5_q = Queue()
+
+    # Init the db
+    init_db()
 
     # Each process gets its own inbox + a dict of the other queues
     processes = [

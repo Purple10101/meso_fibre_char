@@ -15,12 +15,14 @@ from multiprocessing import Queue
 import torch
 import cv2
 import os
+import sqlite3
 
 from src.common.common import Node, cprint, SharedImage
 from src.ss4.seg.model import build_model
 from src.ss4.seg.infer import run_inference
 from src.ss4.recon.fibre_reconstruction import image_fibres_reconstruction
 from src.ss4.meas.fibre_measure import dim_measure
+from src.common.db import write_ss4_results, read_image_results
 
 
 def _get_pixel_side_len(x_mm, y_mm, x_px, y_px):
@@ -88,6 +90,15 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
                           f"(x={metadata['x_mm']}, y={metadata['y_mm']})")
 
             result = proc.run(image, metadata)
+
+            # Write SS4 results to database
+            write_ss4_results(
+                result["image_id"],
+                [{"mesh_id": f["mesh_id"],
+                  "length_mm": f["dimensions"]["length"],
+                  "width_mm": f["dimensions"]["width"]}
+                 for f in result["char"]]
+            )
 
             cprint("ss4", f"Processing complete: {result}")
 
