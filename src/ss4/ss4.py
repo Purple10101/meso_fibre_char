@@ -5,7 +5,6 @@ Joshua Poole
 
 ss4.py
 image processing sub system emulator
-TODO: All client facing and database stuff
 TODO: Time everything!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 """
@@ -23,6 +22,7 @@ from src.ss4.seg.infer import run_inference
 from src.ss4.recon.fibre_reconstruction import image_fibres_reconstruction
 from src.ss4.meas.fibre_measure import dim_measure
 from src.common.db import write_ss4_results, read_image_results
+from src.ss4.client_comms.websocket import start_server, broadcast
 
 
 def _get_pixel_side_len(x_mm, y_mm, x_px, y_px):
@@ -51,6 +51,7 @@ class ImageProcessingSS4:
         run image analysis pipeline according to metadata provided
         TODO: add support for invalid image
         TODO: Add certainty per fibre?
+        TODO: Add support for no SS5 presence
         """
         ret_val = {"image_id": metadata["image_id"],
                    "char": []}
@@ -75,10 +76,15 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
         node = Node("ss4", inbox, peers)
         proc = ImageProcessingSS4()
 
+        await start_server()
+
         cprint("ss4", f"Image Processor Ready.")
 
         async def on_publish_ready(msg):
-            cprint("ss4", "Ready signal received — should push new data to client")
+            image_id = msg["data"]["image_id"]
+            all_data = read_image_results(image_id)
+            await broadcast(all_data)
+            cprint("ss4", f"Published: {all_data}")
 
         async def on_image_data(msg):
             image_path = msg["data"]["image_path"]
