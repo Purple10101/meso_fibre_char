@@ -44,6 +44,7 @@ def run_ss5(inbox: Queue, peers: dict[str, Queue]):
             signal_ready()
 
         def signal_ready():
+            # This could be changed to a node.broadcast
             node.send("ss3", "ready_message", {})
             node.send("ss4", "ready_message", {})
             cprint("ss5", "Sent ready signal to ss3 and ss4")

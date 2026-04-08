@@ -91,6 +91,7 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
 
             cprint("ss4", f"Processing complete: {result}")
 
+            signal_ready()
             send_analysis(result)
 
         async def on_no_images(msg):
@@ -101,6 +102,9 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
             node.send("ss5", "processing_result", {
                 "result": result
             })
+
+        def signal_ready():
+            node.send("ss3", "ready_message", {})
 
         node.on("image_data_message", on_image_data)
         node.on("no_images", on_no_images) # this message wont be part of the real system

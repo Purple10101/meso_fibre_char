@@ -58,6 +58,8 @@ def run_ss3(inbox: Queue, peers: dict[str, Queue]):
 
         active_shm = None
 
+        # TODO: This func need to react to both SS4 and SS5 ready and decide which one to use
+        #       Its always the later one. This is to make sure the system works when SS5 is not there
         async def on_ready(msg):
             image_path, metadata = capture.pop()
 
