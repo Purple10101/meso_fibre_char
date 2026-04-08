@@ -152,7 +152,7 @@ class Node:
     async def poll(self, interval: float = 0.05):
         """
         Check the inbox for messages and dispatch them.
-        Call this in your async loop — it's non-blocking.
+        Call this in an async loop, it's non-blocking.
         """
         try:
             while True:

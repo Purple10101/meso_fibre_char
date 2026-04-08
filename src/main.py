@@ -27,12 +27,12 @@ def main():
 {'=' * 58}{RESET}
 """)
 
-    # One inbox per subsystem
+    # One message inbox per subsystem
     ss3_q = Queue()
     ss4_q = Queue()
     ss5_q = Queue()
 
-    # Each process gets its own inbox + a dict of the others' queues
+    # Each process gets its own inbox + a dict of the other queues
     processes = [
         Process(
             target=run_ss3,
