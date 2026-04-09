@@ -15,6 +15,8 @@ import torch
 import cv2
 import os
 
+from src.common.config import DOWNSTREAM_PROCESSORS
+
 from src.common.common import Node, cprint, SharedImage
 from src.ss4.seg.model import build_model
 from src.ss4.seg.infer import run_inference
@@ -77,11 +79,22 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
         node = Node("ss4", inbox, peers)
         proc = ImageProcessingSS4()
 
+        # kick off the first cycle
+        node.send("ss3", "ready_message", {})
+        downstream_ready = set()
+
         await start_server()
 
         cprint("ss4", f"Image Processor Ready.")
 
         async def on_publish_ready(msg):
+            downstream_ready.add(msg["sender"])
+
+            if not DOWNSTREAM_PROCESSORS.issubset(downstream_ready):
+                return
+
+            downstream_ready.clear()
+
             image_id = msg["data"]["image_id"]
             all_data = read_image_results(image_id)
             await broadcast(all_data)
@@ -98,7 +111,6 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
 
             result = proc.run(image, metadata)
 
-            # Write SS4 results to database
             write_ss4_results(
                 result["image_id"],
                 [{"mesh_id": f["mesh_id"],
@@ -109,8 +121,15 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
 
             cprint("ss4", f"Processing complete: {result}")
 
+            if DOWNSTREAM_PROCESSORS:
+                for target in DOWNSTREAM_PROCESSORS:
+                    node.send(target, "processing_result", {"result": result})
+            else:
+                all_data = read_image_results(result["image_id"])
+                await broadcast(all_data)
+                cprint("ss4", f"Published (no downstream modules): {all_data}")
+
             signal_ready()
-            send_analysis(result)
 
         async def on_no_images(msg):
             cprint("ss4", "ss3 has no more images. Waiting.")

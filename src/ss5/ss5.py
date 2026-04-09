@@ -24,7 +24,6 @@ def run_ss5(inbox: Queue, peers: dict[str, Queue]):
         node = Node("ss5", inbox, peers)
         # kick off the first cycle
         node.send("ss3", "ready_message", {})
-        cprint("ss5", "Sent ready signal to ss3 to kickstart pipeline")
 
         async def on_char_data(msg):
             result = msg["data"]["result"]

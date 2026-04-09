@@ -14,6 +14,8 @@ import pathlib
 from multiprocessing import Queue
 import cv2
 
+from src.common.config import READY_DEPENDENCIES
+
 from src.common.common import Node, cprint, SharedImage
 from src.common.paths import IMAGE_PATH
 
@@ -57,13 +59,17 @@ def run_ss3(inbox: Queue, peers: dict[str, Queue]):
         cprint("ss3", f"Images Ready. {capture.remaining} images in stack.")
 
         active_shm = None
+        ready_received = set()
 
-        # TODO: This func need to react to both SS4 and SS5 ready and decide which one to use
-        #       Its always the later one. This is to make sure the system works when SS5 is not there
         async def on_ready(msg):
-            # for now just react to ss5 ready
-            if msg["sender"] == "ss5":
-                image_path, metadata = capture.pop()
+            ready_received.add(msg["sender"])
+
+            if not READY_DEPENDENCIES.issubset(ready_received):
+                return
+
+            ready_received.clear()
+
+            image_path, metadata = capture.pop()
 
             if image_path is not None:
                 node.send("ss4", "image_data_message", {
