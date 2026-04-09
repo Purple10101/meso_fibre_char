@@ -61,7 +61,9 @@ def run_ss3(inbox: Queue, peers: dict[str, Queue]):
         # TODO: This func need to react to both SS4 and SS5 ready and decide which one to use
         #       Its always the later one. This is to make sure the system works when SS5 is not there
         async def on_ready(msg):
-            image_path, metadata = capture.pop()
+            # for now just react to ss5 ready
+            if msg["sender"] == "ss5":
+                image_path, metadata = capture.pop()
 
             if image_path is not None:
                 node.send("ss4", "image_data_message", {
