@@ -103,13 +103,37 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
         async def on_image_data(msg):
             image_path = msg["data"]["image_path"]
             metadata = msg["data"]["metadata"]
+            image_id = metadata.get("image_id", "unknown")
+
+            # handling an invalid image
+            if not metadata.get("valid", False):
+                cprint("ss4", f"Rejected image {metadata['image_id']}: flagged invalid")
+                await broadcast_error(image_id, f"Failed to load image: {image_path}")
+                signal_ready()
+                return
+
+            # handling an invalid calibration
+            x_mm = metadata.get("x_mm")
+            y_mm = metadata.get("y_mm")
+            if x_mm is None or y_mm is None or x_mm <= 0 or y_mm <= 0:
+                cprint("ss4", f"Rejected image {metadata['image_id']}: invalid calibration metadata")
+                await broadcast_error(image_id, f"Failed to load image: {image_path}")
+                signal_ready()
+                return
 
             image = cv2.imread(image_path)
 
             cprint("ss4", f"Loaded {image_path} ({image.shape}) "
                           f"(x={metadata['x_mm']}, y={metadata['y_mm']})")
 
-            result = proc.run(image, metadata)
+            # contain processing failures
+            try:
+                result = proc.run(image, metadata)
+            except Exception as e:
+                cprint("ss4", f"Processing failed for {metadata['image_id']}: {e}")
+                await broadcast_error(image_id, f"Failed to load image: {image_path}")
+                signal_ready()
+                return
 
             write_ss4_results(
                 result["image_id"],
@@ -134,10 +158,11 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
         async def on_no_images(msg):
             cprint("ss4", "ss3 has no more images. Waiting.")
 
-        def send_analysis(result):
-            """Give results to ss5"""
-            node.send("ss5", "processing_result", {
-                "result": result
+        async def broadcast_error(image_id, reason):
+            await broadcast({
+                "image_id": image_id,
+                "error": True,
+                "reason": reason
             })
 
         def signal_ready():
