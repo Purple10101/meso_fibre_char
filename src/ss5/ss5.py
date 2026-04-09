@@ -41,12 +41,12 @@ def run_ss5(inbox: Queue, peers: dict[str, Queue]):
                 cprint("ss5", f"  mesh {mesh_id}: length={length}, width={width}")
 
             # Done processing — request the next one
-            signal_ready()
+            signal_ready(image_id)
 
-        def signal_ready():
+        def signal_ready(image_id):
             # This could be changed to a node.broadcast
             node.send("ss3", "ready_message", {})
-            node.send("ss4", "ready_message", {})
+            node.send("ss4", "ready_message", {"image_id": image_id})
             cprint("ss5", "Sent ready signal to ss3 and ss4")
 
         node.on("processing_result", on_char_data)

@@ -14,7 +14,6 @@ from multiprocessing import Queue
 import torch
 import cv2
 import os
-import sqlite3
 
 from src.common.common import Node, cprint, SharedImage
 from src.ss4.seg.model import build_model
@@ -65,7 +64,9 @@ class ImageProcessingSS4:
             {"mesh_id": i,
              "dimensions": {"length": length_mm, "width": width_mm}}
             for i, fibre in enumerate(fibres)
-            for length_mm, width_mm in [dim_measure(fibre, px_len)]
+            for result in [dim_measure(fibre, px_len)]
+            if result is not None
+            for length_mm, width_mm in [result]
         ]
         return ret_val
 

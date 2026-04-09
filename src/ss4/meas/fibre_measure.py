@@ -132,13 +132,21 @@ def _skeleton_length(path):
         total += np.sqrt(dr**2 + dc**2)
     return total
 
-def dim_measure(fibre, pixel_len_mm):
+def dim_measure(fibre, pixel_len_mm, min_path_length=5):
     mask = fibre.mask
 
     skeleton = skeletonize(mask)
     path = _trace_skeleton(skeleton)
+
+    if len(path) < min_path_length:
+        return None
+
     length_px = _skeleton_length(path)
     width_px = _measure_width(fibre, path)
+
+    if width_px is None or width_px == 0:
+        return None
+
     length_mm = length_px * pixel_len_mm
     width_mm = width_px * pixel_len_mm
 
