@@ -109,7 +109,7 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
             if not metadata.get("valid", False):
                 cprint("ss4", f"Rejected image {metadata['image_id']}: flagged invalid")
                 await broadcast_error(image_id, f"Failed to load image: {image_path}")
-                signal_ready()
+                signal_ready(image_id)
                 return
 
             # handling an invalid calibration
@@ -118,7 +118,7 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
             if x_mm is None or y_mm is None or x_mm <= 0 or y_mm <= 0:
                 cprint("ss4", f"Rejected image {metadata['image_id']}: invalid calibration metadata")
                 await broadcast_error(image_id, f"Failed to load image: {image_path}")
-                signal_ready()
+                signal_ready(image_id)
                 return
 
             image = cv2.imread(image_path)
@@ -132,7 +132,7 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
             except Exception as e:
                 cprint("ss4", f"Processing failed for {metadata['image_id']}: {e}")
                 await broadcast_error(image_id, f"Failed to load image: {image_path}")
-                signal_ready()
+                signal_ready(image_id)
                 return
 
             write_ss4_results(
@@ -165,8 +165,10 @@ def run_ss4(inbox: Queue, peers: dict[str, Queue]):
                 "reason": reason
             })
 
-        def signal_ready():
-            node.send("ss3", "ready_message", {})
+        def signal_ready(data=None):
+            if data is None:
+                data = {}
+            node.send("ss3", "ready_message", data)
 
         node.on("image_data_message", on_image_data)
         node.on("no_images", on_no_images) # this message wont be part of the real system

@@ -64,7 +64,7 @@ def run_ss3(inbox: Queue, peers: dict[str, Queue]):
         async def on_ready(msg):
             ready_received.add(msg["sender"])
 
-            if not READY_DEPENDENCIES.issubset(ready_received):
+            if not READY_DEPENDENCIES.issubset(ready_received) and msg["data"] == {}:
                 return
 
             ready_received.clear()
